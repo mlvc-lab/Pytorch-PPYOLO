@@ -20,18 +20,18 @@ class PPYOLO_2x_Config(object):
         # self.val_pre_path = '../VOCdevkit/VOC2012/JPEGImages/'     # 验证集图片相对路径
 
         # COCO数据集
-        self.train_path = '../COCO/annotations/instances_train2017.json'
-        self.val_path = '../COCO/annotations/instances_val2017.json'
+        self.train_path = '/dataset/coco/annotations/instances_train2017.json'
+        self.val_path = '/dataset/coco/annotations/instances_val2017.json'
         self.classes_path = 'data/coco_classes.txt'
-        self.train_pre_path = '../COCO/train2017/'  # 训练集图片相对路径
-        self.val_pre_path = '../COCO/val2017/'      # 验证集图片相对路径
+        self.train_pre_path = '/dataset/coco/images/train2017/'  # 训练集图片相对路径
+        self.val_pre_path = '/dataset/coco/images/val2017/'      # 验证集图片相对路径
 
 
         # ========= 一些设置 =========
         self.train_cfg = dict(
             lr=0.0001,
             batch_size=8,
-            model_path='ppyolo_2x.pt',
+            model_path=None,
             # model_path='./weights/step00005000.pt',
             save_iter=1000,   # 每隔几步保存一次模型
             eval_iter=5000,   # 每隔几步计算一次eval集的mAP
