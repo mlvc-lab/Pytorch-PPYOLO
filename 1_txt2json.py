@@ -21,8 +21,8 @@ if __name__ == '__main__':
     train_path = 'annotation/voc2012_train.txt'
     val_path = 'annotation/voc2012_val.txt'
     classes_path = 'data/voc_classes.txt'
-    train_pre_path = '../VOCdevkit/VOC2012/JPEGImages/'   # 训练集图片相对路径
-    val_pre_path = '../VOCdevkit/VOC2012/JPEGImages/'     # 验证集图片相对路径
+    train_pre_path = '/dataset/VOC0712/VOC2012/JPEGImages/'   # 训练集图片相对路径
+    val_pre_path = '/dataset/VOC0712/VOC2012/JPEGImages/'     # 验证集图片相对路径
 
 
     # 创建json注解目录
@@ -161,4 +161,3 @@ if __name__ == '__main__':
         json.dump(val_json, f2)
 
     print('Done.')
-

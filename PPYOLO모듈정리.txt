@@ -1,0 +1,74 @@
+Original: https://github.com/PaddlePaddle/PaddleDetection/blob/release/0.4/ppdet/modeling/ops.py
+baseline: https://github.com/miemie2013/Pytorch-PPYOLO
+
+ResNet50-vd-dcn Backbone (Defromable Convolution Networks):
+https://github.com/miemie2013/Pytorch-PPYOLO/blob/c646d0ac1e395ede039c0c1ca1aa99c2ff1069ef/model/resnet.py#L78
+use_dcn이 True인 레이어(stage 5)에만 DCN 적용.
+ConvBlock은 Conv2dUnit으로 구성되어 있으며 Conv2dUnit은 아래 링크에 정의되어 있음.
+https://github.com/miemie2013/Pytorch-PPYOLO/blob/c646d0ac1e395ede039c0c1ca1aa99c2ff1069ef/model/custom_layers.py#L48
+Line 74~79에서 dcn 사용 여부 결정.
+
+
+Larger BS
+192 in original paper
+ 
+
+EMA(Exponenetial Moving Average)
+구현안됨. TF에서 기본 제공, EfficientDet에서도 사용되었으며, EfficientDet-Pytorch에서 구현된 것 발견 (검증되진 않음).
+https://github.com/rwightman/efficientdet-pytorch/search?q=ema&type=
+
+
+DropBlock:
+https://github.com/miemie2013/Pytorch-PPYOLO/blob/f8321728400c131deaa05f25764fcf837f9cabe3/model/head.py#L177
+
+
+IoU Loss
+GIoU Loss: https://github.com/PaddlePaddle/PaddleDetection/blob/8551de92b9c5bd355f1981dc984850fd69caab39/ppdet/modeling/losses/giou_loss.py#L29
+
+
+IoU Aware
+모델의 변경(헤드에 branch 하나 더 붙음):
+https://github.com/miemie2013/Pytorch-PPYOLO/blob/f8321728400c131deaa05f25764fcf837f9cabe3/model/head.py#L404
+https://github.com/miemie2013/Pytorch-PPYOLO/blob/f8321728400c131deaa05f25764fcf837f9cabe3/model/head.py#L488
+Loss의 변경:
+https://github.com/miemie2013/Pytorch-PPYOLO/blob/c646d0ac1e395ede039c0c1ca1aa99c2ff1069ef/model/iou_losses.py#L194
+
+Loss 변경 Summary:
+그냥 Yolov3의 Loss, IoU Loss, IoU Aware Loss 세 가지가 합쳐져서 만들어짐.
+
+
+Grid Sensitive
+Matrix NMS
+CoordConv
+SPP
+Better Pretrain Model X - Unavailable
+
+
+BoF
+Larger Batch Size
+DropBlock
+IoU Loss
+CoordConv: 단 두개의 추가 채널이 추가되기는 하나 아주 미약한 수준이라 BoF로 분류
+Grid Sensitive: FLOPs가 아주 미약하게 증가하나 무시할 만한 수준이라고 논문에서 언급함.
+EMA(Exponenetial Moving Average)
+
+BoS
+ResNet50-vd-dcn Backbone (Defromable Convolution Networks): DCN이 파라미터를 증가시키기에 ResNet50vd backbone에 부분적으로 적용됨
+IoU Aware: IoU aware branch가 추가되며 0.01%의 파라미터 증가 발생
+SPP: 채널 수를 증가시키기에 파라미터가 늘어나게 됨. 총 2%정도 증가
+
+Post-Processing
+Matrix NMS: NMS를 가속화시켰으나 속도 측정에서 NMS부분은 제외되었기에 논문에선 확인되지 않음
+
+
+---------------------------others------------------------------
+Repulsion Loss
+Pedestrain Detection Technique
+- anchor ratio 변경 등
+
+EfficientNet-Lite
+
+pedestrain dataset 후보
+https://meet.google.com/linkredirect?authuser=0&dest=https%3A%2F%2Fwww.aihub.or.kr%2Faidata%2F136
+https://meet.google.com/linkredirect?authuser=0&dest=https%3A%2F%2Fsoonminhwang.github.io%2Frgbt-ped-detection%2F
+

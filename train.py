@@ -92,18 +92,22 @@ if __name__ == '__main__':
     # 步id，无需设置，会自动读。
     iter_id = 0
 
-    # 创建模型
-    Backbone = select_backbone(cfg.backbone_type)
-    backbone = Backbone(**cfg.backbone)
+    # define loss
     IouLoss = select_loss(cfg.iou_loss_type)
     iou_loss = IouLoss(**cfg.iou_loss)
     IouAwareLoss = select_loss(cfg.iou_aware_loss_type)
     iou_aware_loss = IouAwareLoss(**cfg.iou_aware_loss)
     Loss = select_loss(cfg.yolo_loss_type)
     yolo_loss = Loss(iou_loss=iou_loss, iou_aware_loss=iou_aware_loss, **cfg.yolo_loss)
+
+    #define model
+    Backbone = select_backbone(cfg.backbone_type)
+    backbone = Backbone(**cfg.backbone)
     Head = select_head(cfg.head_type)
     head = Head(yolo_loss=yolo_loss, is_train=True, nms_cfg=cfg.nms_cfg, **cfg.head)
     ppyolo = PPYOLO(backbone, head)
+
+    #look into decode class
     _decode = Decode(ppyolo, class_names, use_gpu, cfg, for_test=False)
 
     # 加载权重
@@ -246,6 +250,8 @@ if __name__ == '__main__':
             target0 = torch.Tensor(target0)
             target1 = torch.Tensor(target1)
             target2 = torch.Tensor(target2)
+
+
             if use_gpu:
                 images = images.cuda()
                 gt_bbox = gt_bbox.cuda()

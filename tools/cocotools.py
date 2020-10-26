@@ -24,6 +24,7 @@ clsid2catid = {0: 1, 1: 2, 2: 3, 3: 4, 4: 5, 5: 6, 6: 7, 7: 8, 8: 9, 9: 10, 10: 
                63: 73, 64: 74, 65: 75, 66: 76, 67: 77, 68: 78, 69: 79, 70: 80, 71: 81, 72: 82, 73: 84, 74: 85,
                75: 86, 76: 87, 77: 88, 78: 89, 79: 90}
 
+
 catid2clsid = {1: 0, 2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 7: 6, 8: 7, 9: 8, 10: 9, 11: 10, 13: 11, 14: 12, 15: 13, 16: 14,
                17: 15, 18: 16, 19: 17, 20: 18, 21: 19, 22: 20, 23: 21, 24: 22, 25: 23, 27: 24, 28: 25, 31: 26,
                32: 27, 33: 28, 34: 29, 35: 30, 36: 31, 37: 32, 38: 33, 39: 34, 40: 35, 41: 36, 42: 37, 43: 38,
@@ -71,7 +72,7 @@ def cocoapi_eval(jsonfile,
     coco_eval.summarize()
     return coco_eval.stats
 
-def bbox_eval(anno_file):
+def bbox_eval(anno_file, bbox_data):
     from pycocotools.coco import COCO
 
     coco_gt = COCO(anno_file)
@@ -86,10 +87,10 @@ def bbox_eval(anno_file):
                 line = line.strip()
                 r_list = json.loads(line)
                 bbox_list += r_list
-    with open(outfile, 'w') as f:
-        json.dump(bbox_list, f)
+    #with open(outfile, 'w') as f:
+    #    json.dump(bbox_list, f)
 
-    map_stats = cocoapi_eval(outfile, 'bbox', coco_gt=coco_gt)
+    map_stats = cocoapi_eval(bbox_data, 'bbox', coco_gt=coco_gt)
     # flush coco evaluation result
     sys.stdout.flush()
     return map_stats
@@ -137,7 +138,8 @@ def eval(_decode, images, eval_pre_path, anno_file, eval_batch_size, _clsid2cati
                     clsid = classes[p]
                     score = scores[p]
                     xmin, ymin, xmax, ymax = boxes[p]
-                    catid = (_clsid2catid[int(clsid)])
+                    #catid = (_clsid2catid[int(clsid)])
+                    catid = clsid
                     w = xmax - xmin + 1
                     h = ymax - ymin + 1
 
@@ -154,14 +156,14 @@ def eval(_decode, images, eval_pre_path, anno_file, eval_batch_size, _clsid2cati
                 path = 'eval_results/bbox/%s.json' % im_name.split('.')[0]
                 if draw_image:
                     cv2.imwrite('eval_results/images/%s' % im_name, image)
-                with open(path, 'w') as f:
-                    json.dump(bbox_data, f)
+                #with open(path, 'w') as f:
+                #    json.dump(bbox_data, f)
             count += 1
             k += 1
             if count % 100 == 0:
                 logger.info('Test iter {}'.format(count))
     # 开始评测
-    box_ap_stats = bbox_eval(anno_file)
+    box_ap_stats = bbox_eval(anno_file, bbox_data)
     return box_ap_stats
 
 
