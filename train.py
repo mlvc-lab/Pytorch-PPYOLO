@@ -25,6 +25,8 @@ from tools.data_process import data_clean, get_samples
 from tools.transform import *
 from pycocotools.coco import COCO
 
+import pytorch_warmup as warmup
+
 import logging
 FORMAT = '%(asctime)s-%(levelname)s: %(message)s'
 logging.basicConfig(level=logging.INFO, format=FORMAT)
@@ -175,9 +177,12 @@ if __name__ == '__main__':
 
     # 保存模型的目录
     if not os.path.exists('./weights'): os.mkdir('./weights')
+    optimizer = torch.optim.SGD(filter(lambda p: p.requires_grad, ppyolo.parameters()), lr=cfg.train_cfg['lr'], momentum=0.9, weight_decay=0.0005)
+    #optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, ppyolo.parameters()), lr=cfg.train_cfg['lr'])   # requires_grad==True 的参数才可以被更新
 
-    optimizer = torch.optim.Adam(filter(lambda p: p.requires_grad, ppyolo.parameters()), lr=cfg.train_cfg['lr'])   # requires_grad==True 的参数才可以被更新
-
+    scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, milestones=[1500000,2000000], gamma=0.1)
+    warmup_scheduler = warmup.ExponentialWarmup(optimizer, warmup_period=1000)
+    warmup_scheduler.last_step = -1
     time_stat = deque(maxlen=20)
     start_time = time.time()
     end_time = time.time()
@@ -185,6 +190,12 @@ if __name__ == '__main__':
     # 一轮的步数。丢弃最后几个样本。
     train_steps = num_train // batch_size
     best_ap_list = [0.0, 0]  #[map, iter]
+
+    if use_gpu and cfg.train_cfg['multi_gpus']:
+        print('using multi gpu.')
+        print('__Number CUDA Devices:', torch.cuda.device_count())
+        ppyolo = torch.nn.DataParallel(ppyolo)
+
     while True:   # 无限个epoch
         # 每个epoch之前洗乱
         np.random.shuffle(train_indexes)
@@ -243,14 +254,13 @@ if __name__ == '__main__':
             target1 = np.concatenate(target1, 0)
             target2 = np.concatenate(target2, 0)
 
-            images = torch.Tensor(images)
-            gt_bbox = torch.Tensor(gt_bbox)
-            gt_score = torch.Tensor(gt_score)
-            gt_class = torch.Tensor(gt_class)
-            target0 = torch.Tensor(target0)
-            target1 = torch.Tensor(target1)
-            target2 = torch.Tensor(target2)
-
+            images = torch.Tensor(images).contiguous()
+            gt_bbox = torch.Tensor(gt_bbox).contiguous()
+            gt_score = torch.Tensor(gt_score).contiguous()
+            gt_class = torch.Tensor(gt_class).contiguous()
+            target0 = torch.Tensor(target0).contiguous()
+            target1 = torch.Tensor(target1).contiguous()
+            target2 = torch.Tensor(target2).contiguous()
 
             if use_gpu:
                 images = images.cuda()
@@ -268,25 +278,48 @@ if __name__ == '__main__':
             loss_cls = losses['loss_cls']
             loss_iou = losses['loss_iou']
             loss_iou_aware = losses['loss_iou_aware']
-            all_loss = loss_xy + loss_wh + loss_obj + loss_cls + loss_iou + loss_iou_aware
 
-            _all_loss = all_loss.cpu().data.numpy()
-            _loss_xy = loss_xy.cpu().data.numpy()
-            _loss_wh = loss_wh.cpu().data.numpy()
-            _loss_obj = loss_obj.cpu().data.numpy()
-            _loss_cls = loss_cls.cpu().data.numpy()
-            _loss_iou = loss_iou.cpu().data.numpy()
-            _loss_iou_aware = loss_iou_aware.cpu().data.numpy()
+            if use_gpu and cfg.train_cfg['multi_gpus']:
+                mean_loss_xy = loss_xy.mean()
+                mean_loss_wh = loss_wh.mean()
+                mean_loss_obj = loss_obj.mean()
+                mean_loss_cls = loss_cls.mean()
+                mean_loss_iou = loss_iou.mean()
+                mean_loss_iou_aware = loss_iou_aware.mean()
 
-            # 更新权重
-            optimizer.zero_grad()  # 清空上一步的残余更新参数值
-            all_loss.backward()  # 误差反向传播, 计算参数更新值
-            optimizer.step()  # 将参数更新值施加到 net 的 parameters 上
+            if use_gpu and cfg.train_cfg['multi_gpus']:
+                all_loss = mean_loss_xy + mean_loss_wh + mean_loss_obj + mean_loss_cls + mean_loss_iou + mean_loss_iou_aware
+                _all_loss = all_loss.cpu().data.numpy()
+                _loss_xy = mean_loss_xy.cpu().data.numpy()
+                _loss_wh = mean_loss_wh.cpu().data.numpy()
+                _loss_obj = mean_loss_obj.cpu().data.numpy()
+                _loss_cls = mean_loss_cls.cpu().data.numpy()
+                _loss_iou = mean_loss_iou.cpu().data.numpy()
+                _loss_iou_aware = mean_loss_iou_aware.cpu().data.numpy()
+            else:
+                all_loss = loss_xy + loss_wh + loss_obj + loss_cls + loss_iou + loss_iou_aware
+                _all_loss = all_loss.cpu().data.numpy()
+                _loss_xy = loss_xy.cpu().data.numpy()
+                _loss_wh = loss_wh.cpu().data.numpy()
+                _loss_obj = loss_obj.cpu().data.numpy()
+                _loss_cls = loss_cls.cpu().data.numpy()
+                _loss_iou = loss_iou.cpu().data.numpy()
+                _loss_iou_aware = loss_iou_aware.cpu().data.numpy()
+
+            all_loss = all_loss.contiguous()
+
+            # training step
+            scheduler.step(train_steps-1)
+            warmup_scheduler.dampen()
+            optimizer.zero_grad()
+            all_loss.backward()
+            optimizer.step()
 
             # ==================== log ====================
             if iter_id % 20 == 0:
                 strs = 'Train iter: {}, all_loss: {:.6f}, loss_xy: {:.6f}, loss_wh: {:.6f}, loss_obj: {:.6f}, loss_cls: {:.6f}, loss_iou: {:.6f}, loss_iou_aware: {:.6f}, eta: {}'.format(
                     iter_id, _all_loss, _loss_xy, _loss_wh, _loss_obj, _loss_cls, _loss_iou, _loss_iou_aware, eta)
+                print("LR: ", scheduler.get_lr())
                 logger.info(strs)
 
             # ==================== save ====================

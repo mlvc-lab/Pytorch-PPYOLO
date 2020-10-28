@@ -46,12 +46,13 @@ class PPYOLO_2x_Config(object):
             batch_size=8,
             model_path=None,
             # model_path='./weights/step00005000.pt',
-            save_iter=2500,   # 每隔几步保存一次模型
-            eval_iter=5000,   # 每隔几步计算一次eval集的mAP
-            max_iters=500000,   # 训练多少步
+            save_iter=2500,
+            eval_iter=5000,
+            max_iters=500000,
+            multi_gpus=True,
         )
 
-        image_size = 320 #608 in original repo
+        image_size = 608 #608 in original repo
         num_classes = 20
 
         # 验证。用于train.py、eval.py、test_dev.py
@@ -136,7 +137,7 @@ class PPYOLO_2x_Config(object):
         # DecodeImage
         self.decodeImage = dict(
             to_rgb=True,
-            with_mixup=True,
+            with_mixup=True, #true in original repo
         )
         # MixupImage
         self.mixupImage = dict(
@@ -166,7 +167,7 @@ class PPYOLO_2x_Config(object):
         # RandomShape
         self.randomShape = dict(
             sizes=[320, 352, 384, 416, 448, 480, 512, 544, 576, 608],
-            random_inter=False, #True in original repo
+            random_inter=True, #True in original repo
         )
         # NormalizeImage
         self.normalizeImage = dict(
