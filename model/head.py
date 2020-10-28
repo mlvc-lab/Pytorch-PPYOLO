@@ -187,7 +187,43 @@ class DropBlock(torch.nn.Module):
     def __call__(self, input):
         if self.is_test:
             return input
-        return input
+
+        def CalculateGamma(input, block_size, keep_prob):
+            h = input.shape[2]  # int
+            h = np.array([h])
+            h = torch.tensor(h, dtype=torch.float32, device=input.device)
+            feat_shape_t = h.reshape((1, 1, 1, 1))  # shape: [1, 1, 1, 1]
+            feat_area = torch.pow(feat_shape_t, 2)  # shape: [1, 1, 1, 1]
+
+            block_shape_t = torch.zeros((1, 1, 1, 1), dtype=torch.float32, device=input.device) + block_size
+            block_area = torch.pow(block_shape_t, 2)
+
+            useful_shape_t = feat_shape_t - block_shape_t + 1
+            useful_area = torch.pow(useful_shape_t, 2)
+
+            upper_t = feat_area * (1 - keep_prob)
+            bottom_t = block_area * useful_area
+            output = upper_t / bottom_t
+            return output
+
+        gamma = CalculateGamma(input, block_size=self.block_size, keep_prob=self.keep_prob)
+        input_shape = input.shape
+        p = gamma.repeat(input_shape)
+
+        input_shape_tmp = input.shape
+        random_matrix = torch.rand(input_shape_tmp, device=input.device)
+        one_zero_m = (random_matrix < p).float()
+
+        mask_flag = torch.nn.functional.max_pool2d(one_zero_m, (self.block_size, self.block_size), stride=1, padding=1)
+        mask = 1.0 - mask_flag
+
+        elem_numel = input_shape[0] * input_shape[1] * input_shape[2] * input_shape[3]
+        elem_numel_m = float(elem_numel)
+
+        elem_sum = mask.sum()
+
+        output = input * mask * elem_numel_m / elem_sum
+        return output
 
 
 
@@ -282,7 +318,6 @@ class YOLOv3Head(torch.nn.Module):
                           [30, 61], [62, 45], [59, 119],
                           [116, 90], [156, 198], [373, 326]],
                  anchor_masks=[[6, 7, 8], [3, 4, 5], [0, 1, 2]],
-                 batch_size=1,
                  norm_type="bn",
                  coord_conv=True,
                  iou_aware=True,
@@ -302,7 +337,6 @@ class YOLOv3Head(torch.nn.Module):
         super(YOLOv3Head, self).__init__()
         self.conv_block_num = conv_block_num
         self.num_classes = num_classes
-        self.batch_size = batch_size
         self.norm_type = norm_type
         self.coord_conv = coord_conv
         self.iou_aware = iou_aware
@@ -384,6 +418,11 @@ class YOLOv3Head(torch.nn.Module):
                 self.upsample_layers.append(conv_unit)
                 self.upsample_layers.append(upsample)
 
+    def set_dropblock(self, is_test):
+        for detection_block in self.detection_blocks:
+            for l in detection_block.layers:
+                if isinstance(l, DropBlock):
+                    l.is_test = is_test
 
     def _get_outputs(self, body_feats):
         outputs = []
@@ -437,7 +476,7 @@ class YOLOv3Head(torch.nn.Module):
             im_size (Variable): Variable of size([h, w]) of each image
 
         Returns:
-            pred (Variable): The prediction result after non-max suppress.
+            pred (Variable): shape = [bs, keep_top_k, 6]
 
         """
         # outputs里为大中小感受野的输出
@@ -461,17 +500,31 @@ class YOLOv3Head(torch.nn.Module):
 
 
         # nms
-        pred = None
+        preds = None
         nms_type = self.nms_cfg['nms_type']
         if nms_type == 'matrix_nms':
-            pred = matrix_nms(yolo_boxes[0], yolo_scores[0],
-                              score_threshold=self.nms_cfg['score_threshold'],
-                              post_threshold=self.nms_cfg['post_threshold'],
-                              nms_top_k=self.nms_cfg['nms_top_k'],
-                              keep_top_k=self.nms_cfg['keep_top_k'],
-                              use_gaussian=self.nms_cfg['use_gaussian'],
-                              gaussian_sigma=self.nms_cfg['gaussian_sigma'])
-        return pred
+            batch_size = yolo_boxes.shape[0]
+            if batch_size == 1:
+                pred = matrix_nms(yolo_boxes[0], yolo_scores[0],
+                                  score_threshold=self.nms_cfg['score_threshold'],
+                                  post_threshold=self.nms_cfg['post_threshold'],
+                                  nms_top_k=self.nms_cfg['nms_top_k'],
+                                  keep_top_k=self.nms_cfg['keep_top_k'],
+                                  use_gaussian=self.nms_cfg['use_gaussian'],
+                                  gaussian_sigma=self.nms_cfg['gaussian_sigma'])
+                preds = pred.unsqueeze(0)
+            else:
+                preds = torch.zeros((batch_size, self.nms_cfg['keep_top_k'], 6), device=yolo_boxes.device) - 1.0
+                for i in range(batch_size):
+                    pred = matrix_nms(yolo_boxes[i], yolo_scores[i],
+                                      score_threshold=self.nms_cfg['score_threshold'],
+                                      post_threshold=self.nms_cfg['post_threshold'],
+                                      nms_top_k=self.nms_cfg['nms_top_k'],
+                                      keep_top_k=self.nms_cfg['keep_top_k'],
+                                      use_gaussian=self.nms_cfg['use_gaussian'],
+                                      gaussian_sigma=self.nms_cfg['gaussian_sigma'])
+                    preds[i, :pred.shape[0], :] = pred
+        return preds
 
 
 

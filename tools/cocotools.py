@@ -243,4 +243,3 @@ def test_dev(_decode, images, test_pre_path, test_batch_size, draw_image, draw_t
     with open('results/bbox_detections.json', 'w') as f2:
         json.dump(bbox_list, f2)
     logger.info('Done.')
-
