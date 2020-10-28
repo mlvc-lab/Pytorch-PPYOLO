@@ -31,7 +31,7 @@ Keras CartoonGAN: https://github.com/miemie2013/keras_CartoonGAN
 
 Pytorch PPYOLO: https://github.com/miemie2013/Pytorch-PPYOLO (mAP 44.8%)
 
-##실현 된 부분
+## 실현 된 부분
 EMA (지수 이동 평균) : config / ppyolo_2x.py에서 self.use_ema = True를 수정하여 엽니 다. 닫으려면 config / ppyolo_2x.py에서 self.use_ema = False를 수정하십시오.
 
 DropBlock : 피처 맵에 무작위로 픽셀을 드롭합니다.
@@ -48,11 +48,7 @@ CoordConv : 기능 맵에있는 픽셀의 좌표 정보 (채널 수 + 2).
 
 SPP : 3 개의 풀링 레이어와 원본 이미지 스티칭의 출력.
 
-## 未实现的部分
-
-多卡训练（由于咩酱只有一张6G的卡，也不是硕士生没有实验室，这部分可能不会实现）。
-
-##Envrinment Setup
+## Envrinment Setup
 
 Install DCNv2
 ```
@@ -60,7 +56,7 @@ cd external/DCNv2
 python setup.py build develop
 ```
 
-##Train from Scratch
+## Train from Scratch
 Simply run
 ```
 python train.py
