@@ -36,7 +36,7 @@ def data_clean(coco, img_ids, catid2clsid, image_dir):
             y1 = max(0, y)
             x2 = min(im_w - 1, x1 + max(0, box_w - 1))
             y2 = min(im_h - 1, y1 + max(0, box_h - 1))
-            if inst['area'] > 0 and x2 >= x1 and y2 >= y1:
+            if inst['area'] > 0 and x2 - x1 > 12 and y2 - y1 > 12:
                 inst['clean_bbox'] = [x1, y1, x2, y2]   # inst增加一个键值对
                 bboxes.append(inst)   # 这张图片的这个物体标注保留
                 anno_id.append(inst['id'])
@@ -62,6 +62,8 @@ def data_clean(coco, img_ids, catid2clsid, image_dir):
             is_crowd[i][0] = box['iscrowd']
             if 'segmentation' in box:
                 gt_poly[i] = box['segmentation']
+            if gt_class[i][0] not in range(0,20):
+                print(gt_class)
 
         im_fname = os.path.join(image_dir,
                                 im_fname) if image_dir else im_fname

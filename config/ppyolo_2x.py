@@ -8,57 +8,62 @@
 #
 # ================================================================
 
-
-
 class PPYOLO_2x_Config(object):
     def __init__(self):
-        # 自定义数据集
         self.train_path = 'annotation_json/voc2012_train.json'
         self.val_path = 'annotation_json/voc2012_val.json'
         self.classes_path = 'data/voc_classes.txt'
-        self.train_pre_path = '../VOCdevkit/VOC2012/JPEGImages/'   # 训练集图片相对路径
-        self.val_pre_path = '../VOCdevkit/VOC2012/JPEGImages/'     # 验证集图片相对路径
-        self.num_classes = 20                                      # 数据集类别数
+        self.train_pre_path = '../VOCdevkit/VOC2012/JPEGImages/'   
+        self.val_pre_path = '../VOCdevkit/VOC2012/JPEGImages/'     
+        self.num_classes = 20                                     
 
-        # COCO数据集
-        # self.train_path = '../COCO/annotations/instances_train2017.json'
-        # self.val_path = '../COCO/annotations/instances_val2017.json'
-        # self.classes_path = 'data/coco_classes.txt'
-        # self.train_pre_path = '../COCO/train2017/'  # 训练集图片相对路径
-        # self.val_pre_path = '../COCO/val2017/'      # 验证集图片相对路径
-        # self.num_classes = 80                       # 数据集类别数
+        # COCO
+        '''
+        self.train_path = '/dataset/coco/annotations/instances_train2017.json'
+        self.val_path = '/dataset/coco/annotations/instances_val2017.json'
+        self.classes_path = 'data/coco_classes.txt'
+        self.train_pre_path = '/dataset/coco/images/train2017/'  
+        self.val_pre_path = '/dataset/coco/images/val2017/'     
+        '''
 
+        # PASCALVOC
+        self.train_path = 'voc_train2017.json' #'/dataset/VOC0712/VOC2012/ImageSets/Main/train.txt'
+        self.val_path = 'voc_test2017.json' #'/dataset/VOC0712/VOC2012/ImageSets/Main/val.txt'
+        self.classes_path = 'data/voc_classes.txt'
+        self.train_pre_path = '/dataset/VOC0712/VOC2012/JPEGImages/'
+        self.val_pre_path = '/dataset/VOC0712/VOC2012/JPEGImages/'
 
-        # ========= 一些设置 =========
+        #for MySimpleRun
+        self.anno_path = '/dataset/VOC0712/VOC2012/Annotations'
+        self.im_path = '/dataset/VOC0712/VOC2012/JPEGImages'
+        self.multiscale_training = False
+        self.num_workers = 0
         self.train_cfg = dict(
-            lr=0.0001,
+            lr=0.001,
             batch_size=8,
-            num_threads=5,   # 读数据的线程数
-            max_batch=3,     # 最大读多少个批
-            model_path='ppyolo_2x.pt',
             # model_path='./weights/step00005000.pt',
-            save_iter=1000,   # 每隔几步保存一次模型
-            eval_iter=5000,   # 每隔几步计算一次eval集的mAP
-            max_iters=500000,   # 训练多少步
+            save_iter=2500,
+            eval_iter=5000,
+            max_iters=500000,
+            multi_gpus=True,
         )
 
+        image_size = 608 
+        num_classes = 20
 
-        # 验证。用于train.py、eval.py、test_dev.py
         self.eval_cfg = dict(
-            model_path='ppyolo_2x.pt',
+            model_path='weights/step00100000.pt',
             # model_path='./weights/step00005000.pt',
-            target_size=608,
-            draw_image=False,    # 是否画出验证集图片
-            draw_thresh=0.15,    # 如果draw_image==True，那么只画出分数超过draw_thresh的物体的预测框。
-            eval_batch_size=4,   # 验证时的批大小。
+            target_size=image_size,
+            draw_image=False,  
+            draw_thresh=0.15,
+            eval_batch_size=4,
         )
 
-        # 测试。用于demo.py
         self.test_cfg = dict(
             model_path='ppyolo_2x.pt',
             # model_path='./weights/step00010000.pt',
-            target_size=608,
-            # target_size=320,
+            target_size=image_size,
             draw_image=True,
             draw_thresh=0.15,   # 如果draw_image==True，那么只画出分数超过draw_thresh的物体的预测框。
         )
@@ -78,7 +83,7 @@ class PPYOLO_2x_Config(object):
         )
         self.head_type = 'YOLOv3Head'
         self.head = dict(
-            num_classes=self.num_classes,
+            num_classes=num_classes,
             norm_type='bn',
             anchor_masks=[[6, 7, 8], [3, 4, 5], [0, 1, 2]],
             anchors=[[10, 13], [16, 30], [33, 23],
@@ -97,15 +102,15 @@ class PPYOLO_2x_Config(object):
         self.iou_loss_type = 'IouLoss'
         self.iou_loss = dict(
             loss_weight=2.5,
-            max_height=608,
-            max_width=608,
+            max_height=image_size,
+            max_width=image_size,
             ciou_term=False,
         )
         self.iou_aware_loss_type = 'IouAwareLoss'
         self.iou_aware_loss = dict(
             loss_weight=1.0,
-            max_height=608,
-            max_width=608,
+            max_height=image_size,
+            max_width=image_size,
         )
         self.yolo_loss_type = 'YOLOv3Loss'
         self.yolo_loss = dict(
@@ -130,7 +135,7 @@ class PPYOLO_2x_Config(object):
         # DecodeImage
         self.decodeImage = dict(
             to_rgb=True,
-            with_mixup=True,
+            with_mixup=True, #true in original repo
         )
         # MixupImage
         self.mixupImage = dict(
@@ -160,7 +165,7 @@ class PPYOLO_2x_Config(object):
         # RandomShape
         self.randomShape = dict(
             sizes=[320, 352, 384, 416, 448, 480, 512, 544, 576, 608],
-            random_inter=True,
+            random_inter=True, #True in original repo
         )
         # NormalizeImage
         self.normalizeImage = dict(
@@ -181,11 +186,11 @@ class PPYOLO_2x_Config(object):
                      [30, 61], [62, 45], [59, 119],
                      [116, 90], [156, 198], [373, 326]],
             downsample_ratios=[32, 16, 8],
-            num_classes=self.num_classes,
+            num_classes=num_classes,
         )
         # ResizeImage
         self.resizeImage = dict(
-            target_size=608,
+            target_size=image_size,
             interp=2,
         )
 
