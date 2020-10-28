@@ -8,22 +8,24 @@
 #
 # ================================================================
 
+
+
 class PPYOLO_2x_Config(object):
     def __init__(self):
-        self.train_path = 'annotation_json/voc2012_train.json'
-        self.val_path = 'annotation_json/voc2012_val.json'
-        self.classes_path = 'data/voc_classes.txt'
-        self.train_pre_path = '../VOCdevkit/VOC2012/JPEGImages/'   
-        self.val_pre_path = '../VOCdevkit/VOC2012/JPEGImages/'     
-        self.num_classes = 20                                     
+        # 自定义数据集
+        # self.train_path = 'annotation_json/voc2012_train.json'
+        # self.val_path = 'annotation_json/voc2012_val.json'
+        # self.classes_path = 'data/voc_classes.txt'
+        # self.train_pre_path = '../VOCdevkit/VOC2012/JPEGImages/'   # 训练集图片相对路径
+        # self.val_pre_path = '../VOCdevkit/VOC2012/JPEGImages/'     # 验证集图片相对路径
 
         # COCO
         '''
         self.train_path = '/dataset/coco/annotations/instances_train2017.json'
         self.val_path = '/dataset/coco/annotations/instances_val2017.json'
         self.classes_path = 'data/coco_classes.txt'
-        self.train_pre_path = '/dataset/coco/images/train2017/'  
-        self.val_pre_path = '/dataset/coco/images/val2017/'     
+        self.train_pre_path = '/dataset/coco/images/train2017/'  # 训练集图片相对路径
+        self.val_pre_path = '/dataset/coco/images/val2017/'      # 验证集图片相对路径
         '''
 
         # PASCALVOC
@@ -38,9 +40,11 @@ class PPYOLO_2x_Config(object):
         self.im_path = '/dataset/VOC0712/VOC2012/JPEGImages'
         self.multiscale_training = False
         self.num_workers = 0
+        # ========= 一些设置 =========
         self.train_cfg = dict(
             lr=0.001,
             batch_size=8,
+            model_path=None,
             # model_path='./weights/step00005000.pt',
             save_iter=2500,
             eval_iter=5000,
@@ -48,18 +52,20 @@ class PPYOLO_2x_Config(object):
             multi_gpus=True,
         )
 
-        image_size = 608 
+        image_size = 608 #608 in original repo
         num_classes = 20
 
+        # 验证。用于train.py、eval.py、test_dev.py
         self.eval_cfg = dict(
             model_path='weights/step00100000.pt',
             # model_path='./weights/step00005000.pt',
             target_size=image_size,
-            draw_image=False,  
-            draw_thresh=0.15,
-            eval_batch_size=4,
+            draw_image=False,    # 是否画出验证集图片
+            draw_thresh=0.15,    # 如果draw_image==True，那么只画出分数超过draw_thresh的物体的预测框。
+            eval_batch_size=1,   # 验证时的批大小。由于太麻烦，暂时只支持1。
         )
 
+        # 测试。用于demo.py
         self.test_cfg = dict(
             model_path='ppyolo_2x.pt',
             # model_path='./weights/step00010000.pt',
@@ -70,20 +76,17 @@ class PPYOLO_2x_Config(object):
 
 
         # ============= 模型相关 =============
-        # self.use_ema = True
-        self.use_ema = False
-        self.ema_decay = 0.9998
         self.backbone_type = 'Resnet50Vd'
         self.backbone = dict(
             norm_type='bn',
             feature_maps=[3, 4, 5],
             dcn_v2_stages=[5],
             downsample_in3x3=True,   # 注意这个细节，是在3x3卷积层下采样的。
-            freeze_at=5,
         )
         self.head_type = 'YOLOv3Head'
         self.head = dict(
             num_classes=num_classes,
+            # num_classes=20,
             norm_type='bn',
             anchor_masks=[[6, 7, 8], [3, 4, 5], [0, 1, 2]],
             anchors=[[10, 13], [16, 30], [33, 23],
@@ -95,7 +98,6 @@ class PPYOLO_2x_Config(object):
             scale_x_y=1.05,
             spp=True,
             drop_block=True,
-            keep_prob=0.9,
             downsample=[32, 16, 8],
             in_channels=[2048, 1024, 512],
         )
@@ -123,7 +125,7 @@ class PPYOLO_2x_Config(object):
             nms_type='matrix_nms',
             score_threshold=0.01,
             post_threshold=0.01,
-            nms_top_k=500,
+            nms_top_k=-1,
             keep_top_k=100,
             use_gaussian=False,
             gaussian_sigma=2.,
@@ -193,5 +195,6 @@ class PPYOLO_2x_Config(object):
             target_size=image_size,
             interp=2,
         )
+
 
 
