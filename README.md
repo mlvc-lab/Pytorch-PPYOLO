@@ -56,6 +56,14 @@ cd external/DCNv2
 python setup.py build develop
 ```
 
+Install requirements
+```
+pip install -r requirements.txt
+apt update -y
+apt install libgl1-mesa-glx -y
+apt-get install libglib2.0-0 -y
+```
+
 ## Train from Scratch
 Simply run
 ```
