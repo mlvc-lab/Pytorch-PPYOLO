@@ -2,6 +2,10 @@
 
 ## Introduction�
 PPYOLO implemented in Pytorch
+```
+pytorch 1.5.0
+torchvision 0.6.0
+```
 
 Original Paper(PaddlePaddle): https://github.com/PaddlePaddle/PaddleDetection
 This Repo is forked from https://github.com/miemie2013/Pytorch-PPYOLO
@@ -48,7 +52,7 @@ CoordConv : 기능 맵에있는 픽셀의 좌표 정보 (채널 수 + 2).
 
 SPP : 3 개의 풀링 레이어와 원본 이미지 스티칭의 출력.
 
-## Envrinment Setup
+## Environment Setup
 
 Install DCNv2
 ```
