@@ -1,6 +1,6 @@
 # Pytorch-PPYOLO
 
-## Introduction°
+## Introduction
 PPYOLO implemented in Pytorch
 ```
 pytorch 1.5.0
@@ -13,7 +13,7 @@ This Repo is forked from https://github.com/miemie2013/Pytorch-PPYOLO
 ## Sources
 Keras YOLOv3: https://github.com/miemie2013/Keras-DIOU-YOLOv3
 
-Pytorch YOLOv3ï: https://github.com/miemie2013/Pytorch-DIOU-YOLOv3
+Pytorch YOLOv3: https://github.com/miemie2013/Pytorch-DIOU-YOLOv3
 
 PaddlePaddle YOLOv3: https://github.com/miemie2013/Paddle-DIOU-YOLOv3
 
